@@ -1,0 +1,12 @@
+# --- Core Framework ---
+# Usamos la última versión estable reportada por tu sistema
+pipecat-ai[ollama,vad,whisper]==0.0.98
+
+# --- Inteligencia y Modelos Locales ---
+faster-whisper>=1.0.3
+kokoro-onnx>=0.2.0
+onnxruntime-gpu>=1.17.0
+
+# --- Audio y Sistema ---
+pyaudio>=0.2.14
+numpy<2.0.0
