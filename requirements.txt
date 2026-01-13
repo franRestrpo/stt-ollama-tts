@@ -1,12 +1,15 @@
-# --- Core Framework ---
-# Usamos la última versión estable reportada por tu sistema
-pipecat-ai[ollama,vad,whisper]==0.0.98
+# --- Núcleo de IA y GPU ---
+onnxruntime-gpu          # Motor para Kokoro en la RTX 5060
+torch                    # Base para modelos de IA
+faster-whisper           # Escucha (STT) optimizada para CUDA
+ollama                   # Cliente para Gemma 3
 
-# --- Inteligencia y Modelos Locales ---
-faster-whisper>=1.0.3
-kokoro-onnx>=0.2.0
-onnxruntime-gpu>=1.17.0
+# --- Voz y Procesamiento ---
+kokoro>=0.9.4            # Motor de Voz (TTS)
+misaki[en,es]            # Fonetización para español natural
 
 # --- Audio y Sistema ---
-pyaudio>=0.2.14
-numpy<2.0.0
+sounddevice              # Interfaz de audio principal
+numpy                    # Procesamiento matemático de ondas
+resampy                  # Remuestreo de audio (solución error -9997)
+huggingface_hub          # Descarga de pesos de modelos

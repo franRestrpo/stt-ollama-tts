@@ -12,7 +12,7 @@ class local_voice_agent:
         print("--- Inicializando Motores en RTX 5060 ---")
         
         # Escucha: Usamos modelo 'small' para equilibrio entre precisión y velocidad
-        self.stt_model = WhisperModel("small", device="cuda", compute_type="float16")
+        self.stt_model = WhisperModel("medium", device="cuda", compute_type="float16")
         
         # Pensamiento: Gemma 3 vía Ollama
         self.ollama = AsyncClient()
