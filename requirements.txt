@@ -13,3 +13,4 @@ sounddevice              # Interfaz de audio principal
 numpy                    # Procesamiento matemático de ondas
 resampy                  # Remuestreo de audio (solución error -9997)
 huggingface_hub          # Descarga de pesos de modelos
+pip install pipecat-ai[pyaudio,ollama]
