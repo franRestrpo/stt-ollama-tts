@@ -1,4 +1,5 @@
 import logging
+import functools
 
 from pipecat.services.stt_service import STTService
 from pipecat.frames.frames import TextFrame
@@ -26,7 +27,8 @@ class LocalWhisperService(STTService):
         audio_np = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
 
         # Transcripción (bloqueante en GPU, idealmente iría en un thread aparte, pero funciona rápido en 5060)
-        segments, _ = await asyncio.get_event_loop().run_in_executor(None, self._model.transcribe, audio_np, "es")
+        transcribe_func = functools.partial(self._model.transcribe, vad_filter=True)
+        segments, _ = await asyncio.get_event_loop().run_in_executor(None, transcribe_func, audio_np, "es")
         text = " ".join([s.text for s in segments]).strip()
         if text:
             logger.info(f"User (Whisper): {text}")

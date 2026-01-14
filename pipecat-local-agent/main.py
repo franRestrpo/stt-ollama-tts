@@ -84,11 +84,11 @@ async def main():
             params=LocalAudioTransportParams(
                 sample_rate=16000,
                 audio_out_sample_rate=44100,
-                audio_in_enabled=False,
-                audio_out_enabled=False,
+                audio_in_enabled=True,
+                audio_out_enabled=True,
                 audio_in_index=mic_id,
                 audio_out_index=spk_id,
-                buffer_size=1024
+                buffer_size=4096
             )
         )
     except Exception as e:
