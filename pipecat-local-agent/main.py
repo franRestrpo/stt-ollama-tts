@@ -2,6 +2,7 @@ import asyncio
 import logging
 import signal
 import sys
+import pyaudio
 
 from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
 from pipecat.pipeline.pipeline import Pipeline
@@ -21,9 +22,39 @@ from services.gemma_llm import LocalGemmaService
 from services.kokoro_tts import LocalKokoroService
 
 
-# ¡VERIFICA ESTOS ID CON list_devices.py!
-MIC_ID = 6  # HD-Audio Generic: ALC892 Analog
-SPK_ID = 6  # HD-Audio Generic: ALC892 Analog
+def select_device(p, is_input):
+    """Permite al usuario seleccionar un dispositivo de audio desde la terminal."""
+    type_str = "entrada (Micrófono)" if is_input else "salida (Altavoces)"
+    print(f"\nScanning {type_str} devices...")
+    
+    count = p.get_device_count()
+    devices = []
+    
+    print(f"\n--- DISPOSITIVOS DE {type_str.upper()} DISPONIBLES ---")
+    idx_counter = 1
+    for i in range(count):
+        dev = p.get_device_info_by_index(i)
+        channels = dev['maxInputChannels'] if is_input else dev['maxOutputChannels']
+        if channels > 0:
+            devices.append((i, dev['name']))
+            print(f"{idx_counter}. {dev['name']}")
+            idx_counter += 1
+            
+    if not devices:
+        print(f"Error: No se encontraron dispositivos de {type_str}.")
+        sys.exit(1)
+
+    while True:
+        try:
+            choice = input(f"\nSelecciona el número del dispositivo de {type_str}: ")
+            idx = int(choice) - 1
+            if 0 <= idx < len(devices):
+                selected_id, selected_name = devices[idx]
+                print(f"-> Seleccionado: {selected_name} (ID: {selected_id})")
+                return selected_id
+            print("Número inválido, intenta nuevamente.")
+        except ValueError:
+            print("Por favor ingresa un número válido.")
 
 async def main():
     logging.basicConfig(
@@ -37,7 +68,16 @@ async def main():
     logger = logging.getLogger(__name__)
 
     logger.info("INICIANDO SISTEMA PIPECAT")
-    logger.info(f"Configurando audio (Mic: {MIC_ID}, Spk: {SPK_ID})...")
+
+    # Selección de dispositivos de audio
+    p = pyaudio.PyAudio()
+    try:
+        mic_id = select_device(p, is_input=True)
+        spk_id = select_device(p, is_input=False)
+    finally:
+        p.terminate()
+
+    logger.info(f"Configurando audio (Mic: {mic_id}, Spk: {spk_id})...")
 
     try:
         transport = LocalAudioTransport(
@@ -46,8 +86,8 @@ async def main():
                 audio_out_sample_rate=44100,
                 audio_in_enabled=False,
                 audio_out_enabled=False,
-                audio_in_index=MIC_ID,
-                audio_out_index=SPK_ID,
+                audio_in_index=mic_id,
+                audio_out_index=spk_id,
                 buffer_size=1024
             )
         )
