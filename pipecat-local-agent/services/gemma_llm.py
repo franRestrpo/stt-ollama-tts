@@ -1,6 +1,10 @@
+import logging
+
 from pipecat.services.llm_service import LLMService
 from pipecat.frames.frames import LLMMessagesFrame, TextFrame, LLMFullResponseEndFrame
 from ollama import AsyncClient
+
+logger = logging.getLogger(__name__)
 
 class LocalGemmaService(LLMService):
     def __init__(self, model="gemma3:12b"):
@@ -9,10 +13,12 @@ class LocalGemmaService(LLMService):
         self._client = AsyncClient()
 
     async def process_frame(self, frame, direction):
+        await super().process_frame(frame, direction)
+
         # AHORA escuchamos LLMMessagesFrame, no TextFrame
         if isinstance(frame, LLMMessagesFrame):
-            print(f"LLM Processing messages: {len(frame.messages)}")
-            
+            logger.info(f"LLM Processing messages: {len(frame.messages)}")
+
             try:
                 # Streaming real con el historial completo
                 async for chunk in self._client.chat(
@@ -23,9 +29,7 @@ class LocalGemmaService(LLMService):
                     content = chunk['message']['content']
                     if content:
                         await self.push_frame(TextFrame(content))
-                
+
                 await self.push_frame(LLMFullResponseEndFrame())
             except Exception as e:
-                print(f"Error LLM: {e}")
-        else:
-            await self.push_frame(frame, direction)
+                logger.error(f"Error LLM: {e}")
