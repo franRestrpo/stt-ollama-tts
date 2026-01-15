@@ -28,8 +28,38 @@ class LocalWhisperService(STTService):
 
         # Transcripción (bloqueante en GPU, idealmente iría en un thread aparte, pero funciona rápido en 5060)
         transcribe_func = functools.partial(self._model.transcribe, vad_filter=True)
-        segments, _ = await asyncio.get_event_loop().run_in_executor(None, transcribe_func, audio_np, "es")
+        segments, info = await asyncio.get_event_loop().run_in_executor(None, transcribe_func, audio_np, "es")
         text = " ".join([s.text for s in segments]).strip()
+
+        # Filtros anti-alucinación (mismos parámetros que stt-llm-tts)
+        if info.language_probability < 0.5:
+            if text:
+                logger.info(f"Whisper ignorado (Baja prob {info.language_probability:.2f}): {text}")
+            return
+
+        # Lista negra de alucinaciones comunes de Whisper en silencio
+        HALLUCINATIONS = [
+            "subtítulos por la comunidad de amara.org",
+            "¡gracias por ver el vídeo!",
+            "gracias por ver el video",
+            "suscríbete",
+            "¡suscríbete!",
+            "amara.org",
+            "subtítulos realizados por",
+            "transcripción realizada por"
+        ]
+
+        text_lower = text.lower()
+        if any(h in text_lower for h in HALLUCINATIONS):
+             logger.info(f"Whisper ignorado (Alucinación conocida): {text}")
+             return
+
+        if len(text) < 3:
+             if text:
+                 logger.info(f"Whisper ignorado (Muy corto): {text}")
+             return
+
+
         if text:
             logger.info(f"User (Whisper): {text}")
             yield TextFrame(text)

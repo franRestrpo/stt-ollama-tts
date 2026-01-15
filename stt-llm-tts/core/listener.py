@@ -15,6 +15,14 @@ class Listener:
         recording = False
         silence_counter = 0
 
+        # Log device information for debugging
+        print("Available audio devices:")
+        devices = sd.query_devices()
+        for i, device in enumerate(devices):
+            print(f"Device {i}: {device['name']}, Input channels: {device['max_input_channels']}, Output channels: {device['max_output_channels']}, Default sample rate: {device['default_samplerate']}")
+        print(f"Default input device: {sd.default.device['input']}")
+        print(f"Default output device: {sd.default.device['output']}")
+
         def callback(indata, frames, time, status):
             nonlocal recording, silence_counter
             volume = np.linalg.norm(indata) * 10
@@ -26,7 +34,13 @@ class Listener:
                 silence_counter += frames / self.sample_rate
                 audio_buffer.append(indata.copy())
 
-        with sd.InputStream(samplerate=self.sample_rate, channels=1, callback=callback):
+        try:
+            with sd.InputStream(samplerate=self.sample_rate, channels=1, callback=callback):
+                while not recording or silence_counter < self.silence_limit:
+                    await asyncio.sleep(0.1)
+        except sd.PortAudioError as e:
+            print(f"Error opening InputStream: {e}")
+            raise
             while not recording or silence_counter < self.silence_limit:
                 await asyncio.sleep(0.1)
         

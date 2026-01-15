@@ -11,6 +11,7 @@ from pipecat.pipeline.task import PipelineTask
 from pipecat.frames.frames import StartFrame
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 
+# Context handling
 from pipecat.processors.aggregators.llm_response import (
     LLMUserContextAggregator, 
     LLMAssistantContextAggregator
@@ -20,6 +21,20 @@ from pipecat.processors.aggregators.sentence import SentenceAggregator
 from services.whisper_stt import LocalWhisperService
 from services.gemma_llm import LocalGemmaService
 from services.kokoro_tts import LocalKokoroService
+
+# Clase de contexto simple para evitar dependencias de OpenAI/Frameworks específicos
+class SimpleContext:
+    def __init__(self, messages=None):
+        self.messages = messages or []
+    
+    def add_message(self, message):
+        self.messages.append(message)
+
+    def get_messages(self):
+        return self.messages
+
+    def clear(self):
+        self.messages = []
 
 
 def select_device(p, is_input):
@@ -102,13 +117,27 @@ async def main():
     tts = LocalKokoroService(voice="af_bella", output_sr=16000)
     sentence_aggregator = SentenceAggregator()
 
+    # Contexto de la conversación con SimpleContext
+    messages = [
+        {
+            "role": "system",
+            "content": "Eres un asistente de voz útil y amable. Responde de manera concisa y clara."
+        }
+    ]
+    context = SimpleContext(messages)
+    
+    user_aggregator = LLMUserContextAggregator(context)
+    assistant_aggregator = LLMAssistantContextAggregator(context)
+
     pipeline = Pipeline([
         transport.input(),
         stt,
+        user_aggregator,
         llm,
         sentence_aggregator,
         tts,
-        transport.output()
+        transport.output(),
+        assistant_aggregator
     ])
 
     task = PipelineTask(pipeline)
